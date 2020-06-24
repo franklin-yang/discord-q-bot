@@ -3,7 +3,7 @@ import logging
 from discord.ext import commands
 import functools
 from datetime import datetime, date, time
-MAX_QUEUE_SIZE = 5;
+MAX_QUEUE_SIZE = 5
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
