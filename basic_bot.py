@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands
 import random
 
-description = '''An example bot to showcase the discord.ext.commands extension
+'''An example bot to showcase the discord.ext.commands extension
 module.
 
 There are a number of utility commands being showcased here.'''
-bot = commands.Bot(command_prefix='?', description=description)
+
+bot = commands.Bot(command_prefix='?', description=__doc__)
 
 @bot.event
 async def on_ready():
