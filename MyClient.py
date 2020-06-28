@@ -1,9 +1,8 @@
 import logging
 from discord.ext import commands
 from discord import abc, Message
-from typing import Set, Dict, Tuple, Optional
-from datetime import datetime, date, time
-from typing import Optional
+from typing import Set, Optional
+from datetime import datetime, time
 from token import TOKEN
 
 MAX_QUEUE_SIZE = 5
@@ -142,7 +141,7 @@ async def j(ctx:commands.Context):
 async def clearq(ctx):
     try:
         global curr_q, last_message_sent
-        curr_q is None
+        curr_q = None
 
     except Exception as e:
         print(e)
