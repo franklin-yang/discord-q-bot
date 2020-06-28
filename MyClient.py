@@ -44,6 +44,17 @@ last_message_sent: Optional[Message] = None
 join_on_reac_msg: Optional[Message] = None
 
 
+def parse_time(time_str: str):
+    parsed_time = None
+    for format_str in ['%I%p', '%I:%M%p']:
+        try:
+            parsed_time = datetime.strptime(time_str, format_str).time()
+        except:
+            pass
+    return parsed_time
+
+
+
 async def send_msg(ctx: commands.Context, msg_content: Optional[str], remove_prev=True):
     global last_message_sent
     sent = None
@@ -61,7 +72,7 @@ async def newq(ctx: commands.Context, time_str: str):
     global curr_q, join_on_reac_msg
     try:
         if curr_q is None:
-            curr_q = Queue(ctx.message.author, datetime.strptime(time_str, '%I:%M%p').time())
+            curr_q = Queue(ctx.message.author, parse_time(time_str))
             join_on_reac_msg = await send_msg(
                 ctx,
                 f'{ctx.message.author.name} has joined the Q!\n{curr_q.get_q_status()}'
@@ -105,11 +116,11 @@ async def hax(ctx: commands.Context):
 
 
 @bot.command()
-async def m(ctx:commands.Context, time_str:str):
+async def m(ctx:commands.Context, time_str: str):
     global curr_q
     try:
         if curr_q is not None:
-            curr_q.time = datetime.strptime(time_str, '%I:%M%p').time()
+            curr_q.time = parse_time(time_str)
             await send_msg(
                 ctx,
                 f'\nQ has been moved to {curr_q.time.strftime("%I:%M%p")}!\n\
