@@ -88,7 +88,12 @@ async def newq(ctx: commands.Context, time_str: str):
 
 
 @bot.command()
-async def wl(ctx: commands.Context):
+async def n(ctx: commands.Context, time_str: str):
+    await newq(ctx, time_str)
+
+
+@bot.command()
+async def waitlist(ctx: commands.Context):
     global curr_q
     try:
         if curr_q is None:
@@ -106,6 +111,11 @@ async def wl(ctx: commands.Context):
 
 
 @bot.command()
+async def wl(ctx: commands.Context):
+    await waitlist(ctx)
+
+
+@bot.command()
 async def hax(ctx: commands.Context):
     global curr_q
     try:
@@ -115,7 +125,7 @@ async def hax(ctx: commands.Context):
 
 
 @bot.command()
-async def m(ctx: commands.Context, time_str: str):
+async def moveq(ctx: commands.Context, time_str: str):
     global curr_q
     try:
         if curr_q is not None:
@@ -131,7 +141,12 @@ async def m(ctx: commands.Context, time_str: str):
 
 
 @bot.command()
-async def j(ctx: commands.Context):
+async def m(ctx: commands.Context, time_str: str):
+    await moveq(ctx, time_str)
+
+
+@bot.command()
+async def joinq(ctx: commands.Context):
     global curr_q
     try:
         if curr_q is not None and len(curr_q.members) < MAX_QUEUE_SIZE:
@@ -148,6 +163,11 @@ async def j(ctx: commands.Context):
 
 
 @bot.command()
+async def j(ctx: commands.Context):
+    await joinq(ctx)
+
+
+@bot.command()
 async def clearq(ctx):
     try:
         global curr_q, last_message_sent
@@ -158,7 +178,7 @@ async def clearq(ctx):
 
 
 @bot.command()
-async def l(ctx: commands.Context):
+async def leaveq(ctx: commands.Context):
     global curr_q
     if curr_q is not None:
         curr_q.members.discard(ctx.message.author)
@@ -168,6 +188,10 @@ async def l(ctx: commands.Context):
         f"looking for {5-len(curr_q.members)} more to join!\n{curr_q.get_q_status()}"
     )
 
+
+@bot.command()
+async def l(ctx: commands.Context):
+    await leaveq(ctx)
 
 @bot.event
 async def on_reaction_add(reaction, user):
