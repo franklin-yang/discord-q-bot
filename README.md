@@ -3,6 +3,7 @@
 A Discord bot to handle 5-man queues at a specific time.
 
 Features:
+- Create a new queue with $newq @ hh:mm
 - Join the queue with $joinq or by reacting to bot messages
 - Join the waitlist if the queue is full or if you don't need to play but are willing to
 - Move the queue time with $moveq
