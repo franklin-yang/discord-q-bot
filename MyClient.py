@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import abc, Message
 from typing import Set, Optional
 from datetime import datetime, time
-from token import TOKEN
+from myToken import TOKEN
 
 MAX_QUEUE_SIZE = 5
 
@@ -69,7 +69,7 @@ async def newq(ctx: commands.Context, time_str: str):
         else:
             await send_msg(
                 ctx,
-                f'\nThere is already a Q @ {curr_q.time.strftime("%I:%M$p")}\
+                f'\nThere is already a Q @ {curr_q.time.strftime("%I:%M%p")}\
                 \nWould you like to move it?',
                 False
             )
