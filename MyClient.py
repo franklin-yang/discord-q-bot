@@ -1,9 +1,12 @@
-import discord
 import logging
 from discord.ext import commands
-import functools
+from discord import abc, Message
+from typing import Set, Dict, Tuple, Optional
 from datetime import datetime, date, time
-MAX_QUEUE_SIZE = 5;
+from typing import Optional
+from token import TOKEN
+
+MAX_QUEUE_SIZE = 5
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -11,96 +14,159 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-client = discord.Client()
 description = '''q bot'''
-bot = commands.Bot(command_prefix='?', description=description)
-from discord.ext import commands
 bot = commands.Bot(command_prefix='$')
-class Queue:
-    members: set = set()
-    time:datetime = None
-    waitlist: set = set()
 
-    def __init__(self, creator:commands.Context.author, time=datetime.now().time()):
+
+class Queue:
+    members: Set[abc.User] = set()
+    wait_list: Set[abc.User] = set()
+    time: time = None
+
+    def __init__(self, creator: commands.Context.author, time: time = datetime.now().time()):
         self.members.add(creator)
         self.time = time
-    def get_q_members(self):
-        return {functools.reduce(lambda acc, ele : f'{ele.name}\n{acc}', curr_q.members )}
 
-curr_q : Queue= None
+    @staticmethod
+    def get_user_list_str(user_list:Set[abc.User]):
+        return "\n".join(list(map(lambda x: x.name, user_list)))
+
+    def get_q_member_mentions(self):
+        return "\n".join(list(map(lambda x: x.mention, self.members)))
+
+    def get_q_status(self):
+        return f'\n__**Q Time:**__\n{self.time.strftime("%I:%M%p")}\
+            \n__**On Deck:**__\n{self.get_user_list_str(self.members)}\n__**On Standby:**__\
+            \n{self.get_user_list_str(self.wait_list)}'
+
+
+curr_q : Optional[Queue] = None
+last_message_sent: Optional[Message] = None
+join_on_reac_msg: Optional[Message] = None
+
+
+async def send_msg(ctx: commands.Context, msg_content: Optional[str], remove_prev=True):
+    global last_message_sent
+    sent = None
+    if msg_content is not None:
+        sent = await ctx.send(msg_content)
+    if remove_prev and last_message_sent is not None:
+        await last_message_sent.delete()
+    if msg_content is not None:
+        last_message_sent = sent
+    return sent
+
 
 @bot.command()
-async def foo(ctx, arg):
-    await ctx.send(arg)
-
-@client.event
-async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
-
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
-
+async def newq(ctx: commands.Context, time_str: str):
+    global curr_q, join_on_reac_msg
+    try:
+        if curr_q is None:
+            curr_q = Queue(ctx.message.author, datetime.strptime(time_str, '%I:%M%p').time())
+            join_on_reac_msg = await send_msg(
+                ctx,
+                f'{ctx.message.author.name} has joined the Q!\n{curr_q.get_q_status()}'
+            )
+        else:
+            await send_msg(
+                ctx,
+                f'\nThere is already a Q @ {curr_q.time.strftime("%I:%M$p")}\
+                \nWould you like to move it?',
+                False
+            )
+    except Exception as e:
+        print(e)
 
 
 @bot.command()
-async def newq(ctx:commands.Context, time_str:str):
+async def wl(ctx: commands.Context):
     global curr_q
     try:
         if curr_q is None:
-            q_time = datetime.strptime(time_str, '%H:%M%p').time()
-            curr_q = Queue(ctx.message.author, q_time)
-            await ctx.send(f'''
-                            Q @ {q_time}
-                            See you soon,
-                            {curr_q.get_q_members()}
-                            who's in?''')
+            await ctx.send(f'There is no Q, would you like to create one with $newq HH:MM:PM?')
+        else:
+            if not (ctx.message.author in curr_q.wait_list):
+                curr_q.members.discard(ctx.message.author)
+                curr_q.wait_list.add(ctx.message.author)
+            await send_msg(
+                ctx,
+                curr_q.get_q_status()
+            )
     except Exception as e:
         print(e)
 
+
 @bot.command()
-async def moveq(ctx:commands.Context, time_str:str):
+async def hax(ctx: commands.Context):
+    global curr_q
+    try:
+        await ctx.send('ekatana stop hacking')
+    except Exception as e:
+        print(e)
+
+
+@bot.command()
+async def m(ctx:commands.Context, time_str:str):
     global curr_q
     try:
         if curr_q is not None:
-            q_time = datetime.strptime(time_str, '%H:%M%p').time()
-            curr_q = Queue(ctx.message.author, q_time)
-            await ctx.send(f'''
-                            Heads up, q has been moved to {q_time}
-                            See you then,
-                            {curr_q.get_q_members()}''')
+            curr_q.time = datetime.strptime(time_str, '%I:%M%p').time()
+            await send_msg(
+                ctx,
+                f'\nQ has been moved to {curr_q.time.strftime("%I:%M%p")}!\n\
+                Please react to this message to show that you are aware of the new time!\n\
+                {curr_q.get_q_status()}'
+            )
     except Exception as e:
         print(e)
 
+
 @bot.command()
-async def joinq(ctx:commands.Context):
+async def j(ctx:commands.Context):
     global curr_q
     try:
         if curr_q is not None and len(curr_q.members) < MAX_QUEUE_SIZE:
-            await ctx.send(f"{ctx.message.author} joined \n \n{curr_q.get_q_members()}\n for a Q @ {curr_q.time} who else wants in?")
             curr_q.members.add(ctx.message.author)
+            curr_q.wait_list.discard(ctx.message.author)
+            await send_msg(
+                ctx,
+                f'\n{ctx.message.author.name} has joined the Q!\n\
+                Please react to this message to show that you are aware of the new time!\n\
+                {curr_q.get_q_status()}'
+            )
     except Exception as e:
         print(e)
+
 
 @bot.command()
 async def clearq(ctx):
     try:
-        global curr_q
-        curr_q.members.clear()
-        await ctx.send(f"q created for {curr_q.time} who's in?")
+        global curr_q, last_message_sent
+        curr_q is None
+
     except Exception as e:
         print(e)
 
+
+@bot.command()
+async def l(ctx: commands.Context):
+    global curr_q
+    if curr_q is not None:
+        curr_q.members.discard(ctx.message.author)
+        curr_q.wait_list.discard(ctx.message.author)
+    await send_msg(
+        ctx,
+        f"looking for {5-len(curr_q.members)} more to join!\n{curr_q.get_q_status()}"
+    )
+
+
 @bot.event
 async def on_reaction_add(reaction, user):
-    global curr_q
-    if len(curr_q.members) < MAX_QUEUE_SIZE:
-        await reaction.message.channel.send(f"{user} joined \n \n{curr_q.get_q_members()}\n for a Q @ {curr_q.time} who else wants in?")
+    global curr_q, last_message_sent
+    if not curr_q is None and len(curr_q.members) < MAX_QUEUE_SIZE and join_on_reac_msg.id == reaction.message.id:
+        await reaction.message.channel.send(f"{user} joined \n{curr_q.get_q_status()} who else wants in?")
         curr_q.members.add(user)
+
 
 def members_in_csgo_vc():
     channel = bot.get_channel(697674781058662401)
@@ -109,4 +175,5 @@ def members_in_csgo_vc():
         cur_members.append(member)
     return cur_members
 
-bot.run('NzI1MTMwMjIxOTg0MTUzNzEw.XvKQSg.Fas-xeMi6M2gtZJpu944GZ5PjVE')
+
+bot.run(TOKEN)
