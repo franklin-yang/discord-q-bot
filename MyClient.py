@@ -20,28 +20,28 @@ bot = commands.Bot(command_prefix='$')
 class Queue:
     members: Set[abc.User] = set()
     wait_list: Set[abc.User] = set()
-    time: time = None
+    q_time: time = None
 
-    def __init__(self, creator: commands.Context.author, time: time = datetime.now().time()):
+    def __init__(self, creator: commands.Context.author, q_time: time = datetime.now().time()):
         self.members.add(creator)
-        self.time = time
+        self.q_time = q_time
 
     @staticmethod
-    def get_user_list_str(user_list:Set[abc.User]):
+    def get_user_list_str(user_list: Set[abc.User]):
         return "\n".join(list(map(lambda x: x.name, user_list)))
 
     def get_q_member_mentions(self):
         return "\n".join(list(map(lambda x: x.mention, self.members)))
 
     def get_q_status(self):
-        return f'\n__**Q Time:**__\n{self.time.strftime("%I:%M%p")}\
+        return f'\n__**Q Time:**__\n{self.q_time.strftime("%I:%M%p")}\
             \n__**On Deck:**__\n{self.get_user_list_str(self.members)}\n__**On Standby:**__\
             \n{self.get_user_list_str(self.wait_list)}'
 
 
-curr_q : Optional[Queue] = None
+curr_q: Optional[Queue] = None
 last_message_sent: Optional[Message] = None
-join_on_reac_msg: Optional[Message] = None
+join_on_react_msg: Optional[Message] = None
 
 
 def parse_time(time_str: str):
@@ -52,7 +52,6 @@ def parse_time(time_str: str):
         except:
             pass
     return parsed_time
-
 
 
 async def send_msg(ctx: commands.Context, msg_content: Optional[str], remove_prev=True):
@@ -69,18 +68,18 @@ async def send_msg(ctx: commands.Context, msg_content: Optional[str], remove_pre
 
 @bot.command()
 async def newq(ctx: commands.Context, time_str: str):
-    global curr_q, join_on_reac_msg
+    global curr_q, join_on_react_msg
     try:
         if curr_q is None:
             curr_q = Queue(ctx.message.author, parse_time(time_str))
-            join_on_reac_msg = await send_msg(
+            join_on_react_msg = await send_msg(
                 ctx,
                 f'{ctx.message.author.name} has joined the Q!\n{curr_q.get_q_status()}'
             )
         else:
             await send_msg(
                 ctx,
-                f'\nThere is already a Q @ {curr_q.time.strftime("%I:%M%p")}\
+                f'\nThere is already a Q @ {curr_q.q_time.strftime("%I:%M%p")}\
                 \nWould you like to move it?',
                 False
             )
@@ -116,14 +115,14 @@ async def hax(ctx: commands.Context):
 
 
 @bot.command()
-async def m(ctx:commands.Context, time_str: str):
+async def m(ctx: commands.Context, time_str: str):
     global curr_q
     try:
         if curr_q is not None:
-            curr_q.time = parse_time(time_str)
+            curr_q.q_time = parse_time(time_str)
             await send_msg(
                 ctx,
-                f'\nQ has been moved to {curr_q.time.strftime("%I:%M%p")}!\n\
+                f'\nQ has been moved to {curr_q.q_time.strftime("%I:%M%p")}!\n\
                 Please react to this message to show that you are aware of the new time!\n\
                 {curr_q.get_q_status()}'
             )
@@ -132,7 +131,7 @@ async def m(ctx:commands.Context, time_str: str):
 
 
 @bot.command()
-async def j(ctx:commands.Context):
+async def j(ctx: commands.Context):
     global curr_q
     try:
         if curr_q is not None and len(curr_q.members) < MAX_QUEUE_SIZE:
@@ -173,7 +172,7 @@ async def l(ctx: commands.Context):
 @bot.event
 async def on_reaction_add(reaction, user):
     global curr_q, last_message_sent
-    if not curr_q is None and len(curr_q.members) < MAX_QUEUE_SIZE and join_on_reac_msg.id == reaction.message.id:
+    if curr_q is not None and len(curr_q.members) < MAX_QUEUE_SIZE and join_on_react_msg.id == reaction.message.id:
         await reaction.message.channel.send(f"{user} joined \n{curr_q.get_q_status()} who else wants in?")
         curr_q.members.add(user)
 
@@ -184,5 +183,6 @@ def members_in_csgo_vc():
     for member in channel.members:
         cur_members.append(member)
     return cur_members
+
 
 bot.run(TOKEN)
