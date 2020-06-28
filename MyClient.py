@@ -175,5 +175,4 @@ def members_in_csgo_vc():
         cur_members.append(member)
     return cur_members
 
-
 bot.run(TOKEN)
