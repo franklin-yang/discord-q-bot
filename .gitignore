@@ -1,3 +1,4 @@
 myToken.py
 __pycache__
 .idea
+*.log
