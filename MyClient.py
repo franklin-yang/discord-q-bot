@@ -93,6 +93,23 @@ async def n(ctx: commands.Context, time_str: str):
 
 
 @bot.command()
+async def status(ctx: commands.Context):
+    """Get the status of the queue."""
+    global curr_q, join_on_react_msg
+    try:
+        if curr_q is None:
+            await ctx.send('There is no active Q.')
+        else:
+            await send_msg(
+                ctx,
+                f'{curr_q.get_q_status()}',
+                True
+            )
+    except Exception as e:
+        print(e)
+
+
+@bot.command()
 async def waitlist(ctx: commands.Context):
     global curr_q
     try:
